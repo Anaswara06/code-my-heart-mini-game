@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODE MY HEART 💖</title>
+<style>
+body{
+ margin:0;font-family:sans-serif;background:#0b141a;color:white;
+ display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden;
+}
+.start{text-align:center;position:absolute}
+.start button{padding:10px 20px;margin:5px;border:none;border-radius:20px;background:#ff4d6d;color:white;cursor:pointer;}
+#noBtn{position:absolute;}
+.phone{width:350px;height:630px;background:#111b21;border-radius:25px;display:none;flex-direction:column;overflow:hidden;position:relative}
+.header{background:#202c33;padding:10px;text-align:center;font-size:14px}
+.chat{flex:1;padding:10px;overflow-y:auto;display:flex;flex-direction:column}
+.msg{background:#202c33;padding:8px;border-radius:10px;margin:5px;max-width:80%}
+.user{background:#005c4b;align-self:flex-end}
+.typing{font-size:12px;opacity:.6;margin-left:10px}
+.choices{background:#202c33;padding:10px;display:flex;flex-direction:column;align-items:center;position:relative}
+.choice{width:90%;padding:10px;margin:5px 0;border:none;border-radius:20px;background:white;color:#ff4d6d;cursor:pointer;}
+#loveBar{height:12px;background:#333;margin:5px;border-radius:10px;overflow:hidden}
+#loveFill{height:100%;width:100%;background:#ff4d6d;transition:.3s}
+.heart{position:absolute;}
+.gift-box{width:100px;height:100px;background:#ff4d6d;border-radius:15px;display:flex;justify-content:center;align-items:center;font-size:50px;cursor:pointer;margin-bottom:10px;animation:scaleUp 0.5s ease;}
+@keyframes scaleUp{0%{transform:scale(0);}100%{transform:scale(1);}}
+</style>
+</head>
+<body>
+
+<div class="start" id="intro">
+<h2>💘 Code My Heart</h2>
+<p>Hey 👋 This is <b>valentine chat 💖</b></p>
+<p>Are you ready to start? 😌</p>
+<button onclick="startGame()">YES 💘</button>
+<button id="noBtn"> NO😅</button>
+</div>
+
+<div class="phone">
+<div class="header">
+<span id="mood">😊</span>
+<div id="loveBar"><div id="loveFill"></div></div>
+<div id="timer">Time:8</div>
+</div>
+<div id="chat" class="chat"></div>
+<div id="choices" class="choices"></div>
+</div>
+
+<script>
+let playerName="",loverName="";
+let love=100,combo=0,step=0,level=0,totalChoices=0;
+let timeLeft=8,timer;
+let miniGameActive = false;
+
+const chat=document.getElementById("chat");
+const choicesDiv=document.getElementById("choices");
+const loveFill=document.getElementById("loveFill");
+const timerEl=document.getElementById("timer");
+const mood=document.getElementById("mood");
+
+// NO button runs away
+const noBtn=document.getElementById("noBtn");
+noBtn.addEventListener("mouseover",()=>{noBtn.style.left=Math.random()*70+"%";noBtn.style.top=Math.random()*50+"%";});
+
+// Questions
+const levels=[
+[{msg:"Hey 😭 what are you doing?",choices:[{text:"Talking to you 😌",score:2},{text:"studying 🤓",score:1},{text:"Nothing 😂",score:0}]}],
+[{msg:"Coffee tomorrow? ☕",choices:[{text:"YES 😭💖",score:2},{text:"Maybe 🤭",score:1},{text:"No 🙂",score:0}]}],
+[{msg:"Happy Valentine’s Day ❤️",choices:[{text:"You mean a lot 😭💘",score:2},{text:"Same to you 🤭",score:1},{text:"👍",score:0}]}],
+[{msg:"Your smile today 😍",choices:[{text:"Made for you 😘",score:2},{text:"Thanks 😊",score:1},{text:"Meh 😐",score:0}]}],
+[{msg:"Movie night together? 🎬",choices:[{text:"Absolutely! 🍿",score:2},{text:"Maybe later 🤭",score:1},{text:"Nope 😅",score:0}]}],
+[{msg:"Do you remember our first chat? 🥰",choices:[{text:"Of course! 😭💘",score:2},{text:"Hmm kinda 🤔",score:1},{text:"Not really 😅",score:0}]}],
+[{msg:"One word to describe me? 💖",choices:[{text:"Amazing 😍",score:2},{text:"Nice 😊",score:1},{text:"Okay 🤭",score:0}]}],
+[{msg:"Would you like a surprise gift later? 🎁",choices:[{text:"Yes 😍",score:2},{text:"Maybe 🤭",score:1},{text:"No 😅",score:0}]}],
+[{msg:"Are we going to win this Valentine challenge together? 🫶🏼",choices:[{text:"Yes! 💖",score:2},{text:"Hopefully 😅",score:1},{text:"No 😭",score:0}]}]
+];
+
+function startGame(){
+ playerName=prompt("Enter Your Name 😌") || "You";
+ loverName=prompt("Enter Loved One's Name 💖") || "Crush";
+ document.getElementById("intro").style.display="none";
+ document.querySelector(".phone").style.display="flex";
+ showStep();
+}
+
+// Chat messages
+function addMsg(text,type="msg"){
+ let div=document.createElement("div");
+ div.className="msg "+(type==="user"?"user":"");
+ chat.appendChild(div);
+ let i=0;
+ let cleanText = text.replace(/\?{2,}/g,'?'); 
+ let typing=setInterval(()=>{
+   div.innerText=cleanText.slice(0,i++);
+   if(i>cleanText.length) clearInterval(typing);
+ },20);
+ chat.scrollTop=chat.scrollHeight;
+}
+
+// Love bar update
+function updateLove(){
+ loveFill.style.width=love+"%";
+ if(love>130){loveFill.style.background="#ff1493"; mood.innerText="😍";}
+ else if(love>70){loveFill.style.background="#ff4d6d"; mood.innerText="😊";}
+ else{loveFill.style.background="#ff0000"; mood.innerText="💔";}
+ if(love<=0) endGame("💔 HEARTBROKEN ENDING");
+}
+
+// Timer
+function startTimer(){
+ clearInterval(timer);timeLeft=8;
+ timer=setInterval(()=>{
+   timerEl.innerText="Time:"+--timeLeft;
+   if(timeLeft<=0){love-=10;updateLove();choose("...",0);}
+ },1000);
+}
+
+// Show question
+function showStep(){
+ if(miniGameActive) return; 
+ if(level>=levels.length){
+   if(love>130) endGame("💍 TRUE LOVE ENDING 😭💖");
+   else if(love>90) endGame("❤️ CUTE COUPLE ENDING 🤭");
+   else if(combo>5) endGame("🌟 SECRET LOVE ENDING ✨");
+   else endGame("💀 FRIENDZONE ENDING 😂");
+   return;
+ }
+ let t=document.createElement("div");
+ t.className="typing"; t.innerText=loverName+" typing...";
+ chat.appendChild(t);
+ setTimeout(()=>{
+   t.remove();
+   let data=levels[level][step];
+   addMsg(loverName+": "+data.msg);
+   let html="";
+   data.choices.forEach(c=>{html+=`<button class="choice" onclick="choose('${c.text}',${c.score})">${c.text}</button>`;});
+   choicesDiv.innerHTML=html;
+   startTimer();
+ },900);
+}
+
+// Choose answer
+function choose(text,points){
+ clearInterval(timer);
+ addMsg(playerName+": "+text,"user");
+ totalChoices++;
+ if(points>1){combo++;love+=5+combo*2;} else{combo=0;love+=points*2;}
+ if(points===0) love-=8;
+ updateLove();
+ step++; if(step>=levels[level].length){level++; step=0;}
+ choicesDiv.innerHTML="";
+ setTimeout(showStep,700);
+}
+
+// END GAME
+function endGame(text){
+    miniGameActive = true;
+    chat.innerHTML = `<h2 style="text-align:center">${text}</h2>
+                      <p style="text-align:center">Love Score: ${love}<br>Choices Made: ${totalChoices}</p>`;
+
+    // Play Again button
+    choicesDiv.innerHTML = '';
+    const tryAgainBtn = document.createElement("button");
+    tryAgainBtn.className="choice";
+    tryAgainBtn.innerText="Play Again 🔄";
+    tryAgainBtn.onclick = ()=> location.reload();
+    choicesDiv.appendChild(tryAgainBtn);
+
+    // Gift box above Try Again
+    let gift = document.createElement("div");
+    gift.className = "gift-box";
+
+    if(text.includes("TRUE LOVE")){
+        gift.innerText = "🎁";
+        gift.addEventListener("click",()=>shatterGift(choicesDiv,"💖"));
+    } else if(text.includes("CUTE COUPLE")){
+        gift.innerText = "💝";
+        gift.addEventListener("click",()=>shatterGift(choicesDiv,"🍭"));
+    } else if(text.includes("SECRET LOVE")){
+        gift.innerText = "🌟";
+        gift.addEventListener("click",()=>shatterGift(choicesDiv,"✨"));
+    } else if(text.includes("FRIENDZONE")){
+        gift.innerText = "🍪";
+        gift.addEventListener("click",()=>shatterGift(choicesDiv,"🍪"));
+    }
+
+    choicesDiv.insertBefore(gift, tryAgainBtn);
+}
+
+// Shatter gift animation
+function shatterGift(container,item){
+    const giftBox = container.querySelector(".gift-box");
+    giftBox.remove();
+    addMsg("🎉 Surprise! 🎉");
+
+    for(let i=0;i<30;i++){
+        let piece = document.createElement("div");
+        piece.innerText = item;
+        piece.style.position="absolute";
+        piece.style.left=giftBox.offsetLeft + giftBox.offsetWidth/2 + "px";
+        piece.style.top=giftBox.offsetTop + giftBox.offsetHeight/2 + "px";
+        piece.style.fontSize=(20+Math.random()*20)+"px";
+        container.appendChild(piece);
+
+        let dx = (Math.random()-0.5)*8;
+        let dy = -Math.random()*5 -2;
+        let gravity = 0.2;
+        let life = 0;
+
+        let fall = setInterval(()=>{
+            dy += gravity;
+            piece.style.left = parseFloat(piece.style.left)+dx+"px";
+            piece.style.top = parseFloat(piece.style.top)+dy+"px";
+            piece.style.transform = `rotate(${life*10}deg)`;
+            life++;
+            if(parseFloat(piece.style.top) > container.offsetHeight){
+                piece.remove();
+                clearInterval(fall);
+            }
+        },20);
+    }
+}
+
+// Background floating hearts
+setInterval(()=>{
+    let h=document.createElement("div");
+    h.className="heart";
+    h.innerText="💖";
+    h.style.left=Math.random()*window.innerWidth+"px";
+    h.style.top=window.innerHeight+"px";
+    h.style.fontSize=(12+Math.random()*20)+"px";
+    h.style.opacity=0.7;
+    h.style.pointerEvents="none";
+    document.body.appendChild(h);
+    
+    let vy = - (2 + Math.random()*3);
+    let vx = (Math.random()-0.5)*1;
+    let life = 0;
+
+    let anim = setInterval(()=>{
+        let top=parseFloat(h.style.top);
+        let left=parseFloat(h.style.left);
+        h.style.top = (top+vy)+"px";
+        h.style.left = (left+vx)+"px";
+        life++;
+        if(top< -50){h.remove(); clearInterval(anim);}
+    },30);
+},500);
+</script>
+</body>
+</html>
